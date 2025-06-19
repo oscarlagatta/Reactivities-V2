@@ -7,6 +7,14 @@ import ActivityDashboard from "../../features/activities/dashboard/ActivityDashb
 function App() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [selectedActivity, setSelectedActivity] = useState<Activity | undefined>(undefined);
+  const [editMode, setEditMode] = useState(false);
+
+  useEffect(() => {
+    axios.get<Activity[]>('https://localhost:5001/api/activities')
+      .then(response => setActivities(response.data));
+
+    return () => { }
+  }, []);
 
   const handleSelectActivity = (id: string) => {
     setSelectedActivity(activities.find(x => x.id === id));
@@ -16,25 +24,48 @@ function App() {
     setSelectedActivity(undefined);
   }
 
+  const handleOpenForm = (id?: string) => {
+    if (id) handleSelectActivity(id);
+    else handleCancelSelectActivity();
+    setEditMode(true);
+  }
 
-  useEffect(() => {
-    axios.get<Activity[]>('https://localhost:5001/api/activities')
-      .then(response => setActivities(response.data));
+  const handleFormClose = () => {
+    setEditMode(false);
+  }
 
-    return () => { }
-  }, []);
+  const handleSubmitForm = (activity: Activity) => {
+    // creating an activity we check for the id
+    if (activity.id) {
+      setActivities((activities.map( x => x.id === activity.id ? activity : x)))
+    } else {
+      const newActivity = {...activity, id: activities.length.toString()}
+      setSelectedActivity(newActivity);
+      setActivities([...activities, newActivity])
+    }
+    setEditMode(false);
+  }
+
+  const handleDelete =( id: string) => {
+    setActivities(activities.filter(x => x.id !== id));
+  }
 
   return (
     <Box sx={{bgcolor: '#eeeeee'}} >
       {/* <Typography variant='h3'>Reactivities</Typography> */}
       <CssBaseline />
-      <NavBar />
+      <NavBar openForm={handleOpenForm}/>
       <Container maxWidth='xl' sx={{ mt: 3 }}>
         <ActivityDashboard         
           activities={activities} 
           selectActivity={handleSelectActivity}
           cancelSelectActivity={handleCancelSelectActivity}
           selectedActivity={selectedActivity}
+          editMode={editMode}
+          openForm={handleOpenForm}
+          closeForm={handleFormClose}
+          submitForm={handleSubmitForm}
+          deleteActivity={handleDelete}
         />
       </Container>
 
